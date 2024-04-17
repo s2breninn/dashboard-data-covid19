@@ -1,4 +1,4 @@
-from pathlib import Path
+import os
 from time import sleep
 
 from selenium import webdriver
@@ -12,8 +12,8 @@ from selenium.webdriver.support import expected_conditions as ec
 # https://peter.sh/experiments/chromium-command-line-switches/
 # https://selenium-python.readthedocs.io/
 
-ROOT_FOLDER = Path.cwd()
-CHROME_DRIVER_PATH = ROOT_FOLDER / 'drivers' / 'chromedriver'
+root_folder = os.getcwd()
+chrome_driver_path = os.path.join(root_folder, 'drivers', 'chromedriver')
 
 def make_chrome_browser(*options: str) -> webdriver.Chrome:
     try:
@@ -22,10 +22,10 @@ def make_chrome_browser(*options: str) -> webdriver.Chrome:
         # chrome_options.add_argument('--headless')
         if options is not None:
             for option in options:
-                chrome_option.add_argument(option) # type: ignore
+                chrome_options.add_argument(option) # type: ignore
 
         chrome_service = Service(
-            executable_path=str(CHROME_DRIVER_PATH),
+            executable_path=str(chrome_driver_path),
         )
 
         browser = webdriver.Chrome(
@@ -38,7 +38,7 @@ def make_chrome_browser(*options: str) -> webdriver.Chrome:
     return browser
 
 def get_element_data(url, xpath=None, link_text=None, partial_link_text=None, tag_name=None, class_name=None, css_selector=None):
-    TIME_TO_WAIT = 20
+    TIME_TO_WAIT = 10
 
     # Example
     # options = '--headless', '--disable-gpu'
@@ -64,9 +64,8 @@ def get_element_data(url, xpath=None, link_text=None, partial_link_text=None, ta
     else:
         print(f'Elemento não identificado')
 
-    print(f'\n\nElemento capturado: {captured_element}\n\n')
+    print(f'\n\nElemento capturado: {captured_element.text}\n\n')
 
     captured_element.click()
-    captured_element.send_keys(Keys.ENTER)
 
     sleep(TIME_TO_WAIT)
