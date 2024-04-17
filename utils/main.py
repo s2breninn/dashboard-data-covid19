@@ -37,8 +37,8 @@ def make_chrome_browser(*options: str) -> webdriver.Chrome:
 
     return browser
 
-def get_element_data(url, **kwargs):
-    TIME_TO_WAIT = 10
+def get_element_data(url, time, xpath=None, link_text=None, partial_link_text=None, tag_name=None, class_name=None, css_selector=None):
+    TIME_TO_WAIT = time
 
     # Example
     # options = '--headless', '--disable-gpu'
@@ -48,29 +48,26 @@ def get_element_data(url, **kwargs):
     browser.get(url)
 
     # Espere para encontrar o input
-    for arg, value in kwargs.items():
-        if arg == 'xpath':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.XPATH, value)))
-        elif arg == 'link_text':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.LINK_TEXT, value)))
-        elif arg == 'partial_link_text':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.PARTIAL_LINK_TEXT, value)))
-        elif arg == 'tag_name':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.TAG_NAME, value)))
-        elif arg == 'class_name':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CLASS_NAME, value)))
-        elif arg == 'css_selector':
-            return WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CSS_SELECTOR, value)))
+    try:
+        if xpath:
+            captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.XPATH, xpath)))
+            return captured_element
+        elif link_text:
+            WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.LINK_TEXT, link_text)))
+            return 
+        elif partial_link_text:
+            captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.PARTIAL_LINK_TEXT, partial_link_text)))
+            return captured_element
+        elif tag_name:
+            captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.TAG_NAME, tag_name)))
+            return captured_element
+        elif class_name:
+            captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CLASS_NAME, class_name)))
+            return captured_element
+        elif css_selector:
+            captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
+            return captured_element
         else:
-            print("Invalid selection method.")
-
-'''    search_input.send_keys('Hello world')
-    search_input.send_keys(Keys.ENTER)
-
-    results = browser.find_element(By.ID, 'search')
-    links = results.find_elements(By.TAG_NAME, 'a')
-    links[0].click()
-    print(links)
-
-    # Dorme por 10s
-    sleep(TIME_TO_WAIT)'''
+            print(f'Elemento não identificado')
+    except Exception as e:
+        print(f'Erro ao capturar elemento: {e}')
