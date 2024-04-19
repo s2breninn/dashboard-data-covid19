@@ -6,13 +6,8 @@ import shutil
 sys.path.insert(0, os.getcwd())
 from utils.get_element_selenium import get_element_data
 
-def mov_file():
-    root_folder = os.getcwd()
-    data_folder = os.path.join(os.path.join(root_folder, 'data'))
-    user_folder = os.path.expanduser('~')
-    downloads_dir = os.path.join(user_folder, 'Downloads')
-
-    search_pattern = os.path.join(downloads_dir, "HIST_PAINEL_COVIDBR_12abr2024.zip")
+def move_file(downloads_dir, data_folder):
+    search_pattern = os.path.join(downloads_dir, "HIST_PAINEL_COVIDBR_13abr2024.zip")
     matching_files = glob.glob(search_pattern)
 
     if matching_files:
@@ -26,8 +21,13 @@ def mov_file():
 
 
 if __name__ == '__main__':
+    root_folder = os.getcwd()
+    data_folder = os.path.join(os.path.join(root_folder, 'data'))
+    user_folder = os.path.expanduser('~')
+    downloads_dir = os.path.join(user_folder, 'Downloads')
+
     url = 'https://covid.saude.gov.br/'
     elemento = '/html/body/app-root/ion-app/ion-router-outlet/app-home/ion-content/div[1]/div[2]/ion-button'
 
     get_element_data(url, xpath=elemento)
-    mov_file()
+    move_file(downloads_dir, data_folder)
