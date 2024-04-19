@@ -50,7 +50,7 @@ def get_element_data(url, xpath=None, link_text=None, partial_link_text=None, ta
     # Espere para encontrar o elemento
     if xpath:
         captured_element = browser.find_element(By.XPATH, xpath)
-        #captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.visibility_of_element_located((By.XPATH, xpath)))
+        captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.visibility_of_element_located((By.XPATH, xpath)))
     elif link_text:
         captured_element = browser.find_element(By.LINK_TEXT, link_text)
     elif partial_link_text:
