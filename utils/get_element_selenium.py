@@ -52,15 +52,15 @@ def get_element_data(url, xpath=None, link_text=None, partial_link_text=None, ta
         captured_element = browser.find_element(By.XPATH, xpath)
         #captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.visibility_of_element_located((By.XPATH, xpath)))
     elif link_text:
-        WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.LINK_TEXT, link_text)))
+        captured_element = browser.find_element(By.LINK_TEXT, link_text)
     elif partial_link_text:
-        captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.PARTIAL_LINK_TEXT, partial_link_text)))
+        captured_element = browser.find_element(By.PARTIAL_LINK_TEXT, partial_link_text)
     elif tag_name:
-        captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.TAG_NAME, tag_name)))
+        captured_element = browser.find_element(By.TAG_NAME, tag_name)
     elif class_name:
-        captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CLASS_NAME, class_name)))
+        captured_element = browser.find_element(By.CLASS_NAME, class_name)
     elif css_selector:
-        captured_element = WebDriverWait(browser, TIME_TO_WAIT).until(ec.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
+        captured_element = browser.find_element(By.CSS_SELECTOR, css_selector)
     else:
         print(f'Elemento não identificado')
 

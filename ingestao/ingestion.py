@@ -4,7 +4,7 @@ import glob
 import shutil
 
 sys.path.insert(0, os.getcwd())
-from utils.main import get_element_data
+from utils.get_element_selenium import get_element_data
 
 def mov_file():
     root_folder = os.getcwd()
