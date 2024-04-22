@@ -10,12 +10,12 @@ import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
 import duckdb
-import json
 import sys
 import os
 
 sys.path.insert(0, os.getcwd())
 from database import connect_database
+from utils.load_file_json import load_file_json
 
 def separate_covid19_data(conn, q):
     df_estados = conn.execute(f'''
@@ -93,3 +93,5 @@ if __name__ == '__main__':
     df_estados, df_municipios, df_brasil = separate_covid19_data(conn, q)
     register_dataframes(conn, df_estados, df_municipios, df_brasil)
     create_table_db(list_name_tables)
+
+    data_geo_json = load_file_json('geojson/brazil_geo.json')
