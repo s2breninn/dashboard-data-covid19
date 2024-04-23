@@ -1,5 +1,7 @@
 [tool.taskipy.tasks]
-run = "python dashboard.py"
+run = "python etl/transform.py"
+dashboard = "python dashboard.py"
+unity = "python tratando_arquivo_geojson.py"
 
 [tool.poetry]
 name = "dashboard-covid19"
