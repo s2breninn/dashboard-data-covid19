@@ -18,28 +18,19 @@ from database import connect_database
 from utils.load_file_json import load_file_json
 from etl.transform import transform
 
-'''try:
-    conn = connect_database()
-    if conn is None:
-        print("A conexão não foi estabelecida.")
-    else:
-        print("Conexão estabelecida com sucesso.")
-except duckdb.Error as e:
-    print(f"Erro ao conectar ao banco de dados: {e}")
-
-df_estados = conn.execute('SELECT * FROM covid19_estados').df()
-df_municipios = conn.execute('SELECT * FROM covid19_municipios').df()
-df_brasil = conn.execute('SELECT * FROM covid19_brasil').df()'''
-
 estados_brasil = load_file_json('geojson/brazil_geo.json')
-df_estados, df_municipios, df_brasil = transform()
+#df_estados, df_municipios, df_brasil = transform()
+
+df_states = pd.read_csv('data/gold_csv_files/covid19_estados.csv', sep=';')
+df_brazil = pd.read_csv('data/gold_csv_files/covid19_brasil.csv', sep=';')
+df_data = df_states[df_states['estado'] == 'RJ']
 
 # ======================================================
 # Instanciação do dash
 app =  dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG]) # Setando o tema da aplicação
 
-fig = px.choropleth_mapbox(df_estados, locations='estado', color='casosnovos',
-                            center={'lat': -16.95, 'lon': -47.78},
+fig = px.choropleth_mapbox(df_states, locations='estado', color='casosnovos',
+                            center={'lat': -16.95, 'lon': -47.78}, zoom=4,
                             geojson=estados_brasil, color_continuous_scale='Redor', opacity=0.4,
                             hover_data={
                                 'casosacumulado': True,
@@ -48,13 +39,42 @@ fig = px.choropleth_mapbox(df_estados, locations='estado', color='casosnovos',
                                 'estado': True
                             }) # elemento que vai conter nosso mapa
 fig.update_layout(
+    paper_bgcolor='#242424',
+    autosize=True,
+    margin=go.Margin(l=0, r=0, t=0, b=0),
+    showlegend=False,
     mapbox_style='carto-darkmatter'
+)
+
+fig2 = go.Figure(layout={'template': 'plotly_dark'})
+fig2.add_trace(go.Scatter(x=df_data['_data'], y=df_data['casosacumulado']))
+fig2.update_layout(
+    paper_bgcolor='#242424',
+    plot_bgcolor='#242424',
+    autosize=True,
+    margin=dict(l=0, r=10, t=10, b=10)
 )
 
 # ======================================================
 # Construção do layout
 app.layout = dbc.Container(
     dbc.Row([
+
+        dbc.Col([
+            html.Div([
+                html.Img(id='logo', src=app.get_asset_url('logo_dark.png'), height=50),
+                html.H5('Evolução COVID-19'),
+                dbc.Button('BRASIL', color='primary', id='location-button', size='lg')    
+            ], style={}),
+            html.P('Informe a data na qual deseja obter informações:', style={'margin-top': '40px'}),
+            html.Div(id='div-test', children=[
+                dcc.DatePickerSingle(
+                    id='date-picker',
+                    min_date_allowed=df_brazil['_data'].min()
+                )
+            ]),
+            dcc.Graph(id='line-graph', figure=fig2)
+        ]),
         dbc.Col([
             dcc.Graph(id='choropleth-map', figure=fig)
         ])
