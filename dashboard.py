@@ -16,82 +16,50 @@ import os
 sys.path.insert(0, os.getcwd())
 from database import connect_database
 from utils.load_file_json import load_file_json
+from etl.transform import transform
 
-def separate_covid19_data(conn, q):
-    df_estados = conn.execute(f'''
-        SELECT regiao, estado, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos,  emacompanhamentonovos
-        FROM ({q})
-        WHERE 
-            estado IS NOT NULL AND
-            codmun IS NULL
-    ''').df()
+'''try:
+    conn = connect_database()
+    if conn is None:
+        print("A conexão não foi estabelecida.")
+    else:
+        print("Conexão estabelecida com sucesso.")
+except duckdb.Error as e:
+    print(f"Erro ao conectar ao banco de dados: {e}")
 
-    df_municipios = conn.execute(f'''
-        SELECT *
-        FROM ({q})
-        WHERE codmun IS NOT NULL
-    ''').df()
+df_estados = conn.execute('SELECT * FROM covid19_estados').df()
+df_municipios = conn.execute('SELECT * FROM covid19_municipios').df()
+df_brasil = conn.execute('SELECT * FROM covid19_brasil').df()'''
 
-    df_brasil = conn.execute(f'''
-        SELECT regiao, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos,  emacompanhamentonovos
-        FROM ({q})
-        WHERE regiao = 'Brasil'
-    ''').df()
+estados_brasil = load_file_json('geojson/brazil_geo.json')
+df_estados, df_municipios, df_brasil = transform()
 
-    return df_estados, df_municipios, df_brasil
+# ======================================================
+# Instanciação do dash
+app =  dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG]) # Setando o tema da aplicação
 
-def register_dataframes(conn, df_estados, df_municipios, df_brasil):
-    try:
-        conn.register('covid19_estados', df_estados)
-        conn.register('covid19_municipios', df_municipios)
-        conn.register('covid19_brasil', df_brasil)
-        print(f'Registrou todos DataFrame na conexão com sucesso!')
-    except Exception as e:
-        print(f'Erro ao registrar tabela: {e}')
+fig = px.choropleth_mapbox(df_estados, locations='estado', color='casosnovos',
+                            center={'lat': -16.95, 'lon': -47.78},
+                            geojson=estados_brasil, color_continuous_scale='Redor', opacity=0.4,
+                            hover_data={
+                                'casosacumulado': True,
+                                'casosnovos': True,
+                                'obitosnovos': True,
+                                'estado': True
+                            }) # elemento que vai conter nosso mapa
+fig.update_layout(
+    mapbox_style='carto-darkmatter'
+)
 
-def create_table_db(list_name_tables):
-    try:
-        print('entrou aqui')
-        for name_table in list_name_tables:
-            conn.execute(f'''
-                CREATE TABLE IF NOT EXISTS {name_table} AS SELECT * FROM {name_table}
-            ''')
-        print(f'Tabela criada com sucesso!')
-    except BaseExceptionGroup as e:
-        print(f'Erro ao criar tabela: {e}')
-
-def describe_covid19_tables():
-    result_estados = conn.execute(f'DESCRIBE covid19_estados').df()
-    result_municipios = conn.execute(f'DESCRIBE covid19_municipios').df()
-    result_brasil = conn.execute(f'DESCRIBE covid19_brasil').df()
-
+# ======================================================
+# Construção do layout
+app.layout = dbc.Container(
+    dbc.Row([
+        dbc.Col([
+            dcc.Graph(id='choropleth-map', figure=fig)
+        ])
+    ])
+)
 
 if __name__ == '__main__':
-    root_folder = os.getcwd()
-    bronze_data_folder = os.path.join(root_folder, 'data', 'extracted_files')
-    full_bronze_data_path = os.path.join(bronze_data_folder, '*')
-
-    list_name_tables = ['covid19_estados', 'covid19_municipios', 'covid19_brasil']
-    
-    try:
-        conn = connect_database()
-        if conn is None:
-            print("A conexão não foi estabelecida.")
-        else:
-            print("Conexão estabelecida com sucesso.")
-    except duckdb.Error as e:
-        print(f"Erro ao conectar ao banco de dados: {e}")
-
-    q = f'''SELECT * FROM read_csv_auto(
-                '{full_bronze_data_path}',
-                normalize_names=true,
-                ignore_errors=true,
-                delim=';',
-                header=true
-            )'''
-    
-    df_estados, df_municipios, df_brasil = separate_covid19_data(conn, q)
-    register_dataframes(conn, df_estados, df_municipios, df_brasil)
-    create_table_db(list_name_tables)
-
-    data_geo_json = load_file_json('geojson/brazil_geo.json')
+    app.run_server(debug=True)
