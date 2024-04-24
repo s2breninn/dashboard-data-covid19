@@ -70,9 +70,28 @@ app.layout = dbc.Container(
             html.Div(id='div-test', children=[
                 dcc.DatePickerSingle(
                     id='date-picker',
-                    min_date_allowed=df_brazil['_data'].min()
+                    min_date_allowed=df_brazil['_data'].min(),
+                    max_date_allowed=df_brazil['_data'].max(),
+                    initial_visible_month=df_brazil['_data'].min(),
+                    date=df_brazil['_data'].max(),
+                    display_format='MMMM D, YYYY',
+                    style={'border': '0px solid black'}
                 )
             ]),
+
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardBody([
+                            html.Span('Casos recuperados'),
+                            html.H3(style={'color': '#adfc92'}, id='casos-recuperados-text'),
+                            html.Span('Em acompanhamento'),
+                            html.H5(id='em-acompanhamento-text')
+                        ], color='light', outline=True, style={'margin-top': '10px', 'box-shadow': '0 4px 4px 0  rgba(0,0,0,0.15), 0 4px 20px 0 rgba(0, 0, 0, 0.14)', 'color': '#ffffff'})
+                    ], md=12)
+                ])
+            ]),
+            
             dcc.Graph(id='line-graph', figure=fig2)
         ]),
         dbc.Col([
