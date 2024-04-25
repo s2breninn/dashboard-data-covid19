@@ -143,5 +143,23 @@ app.layout = dbc.Container(
     ])
 , fluid=True)
 
+# ======================================================
+# Interatividade
+@app.callback(
+    [
+        Output('casos-recuperados-text', 'children'),
+        Output('em-acompanhamento-text', 'children'),
+        Output('casos-confirmados-text', 'children'),
+        Output('novos-casos-text', 'children'),
+        Output('obitos-na-data-text', 'children'),
+    ],
+    [
+        Input('date-picker', 'date'),
+        Input('location-button', 'children'),
+    ]
+)
+def display_status(date, location):
+    return (1, 2, 3, 4, 5, 6)
+
 if __name__ == '__main__':
     app.run_server(debug=True)
