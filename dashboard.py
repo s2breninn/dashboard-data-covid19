@@ -25,6 +25,13 @@ df_states = pd.read_csv('data/gold_csv_files/covid19_estados.csv', sep=';')
 df_brazil = pd.read_csv('data/gold_csv_files/covid19_brasil.csv', sep=';')
 df_data = df_states[df_states['estado'] == 'RJ']
 
+select_columns = {
+    'casosacumulados': 'Casos Acumulados',
+    'casosnovos': 'Casos Novos',
+    'obitosacumulados': 'Obitos Totais',
+    'obitosnovos': 'Obitos por dia'
+}
+
 # ======================================================
 # Instanciação do dash
 app =  dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG]) # Setando o tema da aplicação
@@ -80,25 +87,61 @@ app.layout = dbc.Container(
             ]),
 
             dbc.Row([
-                dbc.Col([
-                    dbc.Card([
+                dbc.Col([dbc.Card([   
                         dbc.CardBody([
-                            html.Span('Casos recuperados'),
-                            html.H3(style={'color': '#adfc92'}, id='casos-recuperados-text'),
-                            html.Span('Em acompanhamento'),
-                            html.H5(id='em-acompanhamento-text')
-                        ], color='light', outline=True, style={'margin-top': '10px', 'box-shadow': '0 4px 4px 0  rgba(0,0,0,0.15), 0 4px 20px 0 rgba(0, 0, 0, 0.14)', 'color': '#ffffff'})
-                    ], md=12)
-                ])
+                            html.Span("Casos recuperados", className="card-text"),
+                            html.H3(style={"color": "#adfc92"}, id="casos-recuperados-text"),
+                            html.Span("Em acompanhamento", className="card-text"),
+                            html.H5(id="em-acompanhamento-text"),
+                            ])
+                        ], color="light", outline=True, style={"margin-top": "10px",
+                                "box-shadow": "0 4px 4px 0 rgba(0, 0, 0, 0.15), 0 4px 20px 0 rgba(0, 0, 0, 0.19)",
+                                "color": "#FFFFFF"})], md=4),
+                dbc.Col([dbc.Card([   
+                        dbc.CardBody([
+                            html.Span("Casos confirmados totais", className="card-text"),
+                            html.H3(style={"color": "#389fd6"}, id="casos-confirmados-text"),
+                            html.Span("Novos casos na data", className="card-text"),
+                            html.H5(id="novos-casos-text"),
+                            ])
+                        ], color="light", outline=True, style={"margin-top": "10px",
+                                "box-shadow": "0 4px 4px 0 rgba(0, 0, 0, 0.15), 0 4px 20px 0 rgba(0, 0, 0, 0.19)",
+                                "color": "#FFFFFF"})], md=4),
+                dbc.Col([dbc.Card([   
+                        dbc.CardBody([
+                            html.Span("Óbitos confirmados", className="card-text"),
+                            html.H3(style={"color": "#DF2935"}, id="obitos-text"),
+                            html.Span("Óbitos na data", className="card-text"),
+                            html.H5(id="obitos-na-data-text"),
+                            ])
+                        ], color="light", outline=True, style={"margin-top": "10px",
+                                "box-shadow": "0 4px 4px 0 rgba(0, 0, 0, 0.15), 0 4px 20px 0 rgba(0, 0, 0, 0.19)",
+                                "color": "#FFFFFF"})], md=4),
             ]),
-            
-            dcc.Graph(id='line-graph', figure=fig2)
-        ]),
+            dbc.Row([
+
+            ]),
+
+            html.Div([
+                html.P('Selecione que tipo de dado deseja visualizar:', style={'margin-top': '25px'}),
+                dcc.Dropdown(id='location-dropdown',
+                             options=[{'label': j, 'value': i} for i, j in select_columns.items()],
+                             value='casosnovos',
+                             style={'margin-top': '10px'}
+                             ),
+                dcc.Graph(id='line-graph', figure=fig2)
+            ])
+
+        ], md=4, style={"padding": "25px", "background-color": '#242424'}),
+        
         dbc.Col([
-            dcc.Graph(id='choropleth-map', figure=fig)
-        ])
+            dcc.Loading(id='loading-1', type='default', 
+                        children=[
+                            dcc.Graph(id='choropleth-map', figure=fig, style={"height": "100vh", "marin-right": "10px"})
+                        ])
+        ], md=7),
     ])
-)
+, fluid=True)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
