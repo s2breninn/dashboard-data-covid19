@@ -1,100 +1,132 @@
-import duckdb
-import sys
 import os
+import sys
+import duckdb
+from typing import Tuple, List, Optional, Any
 
-print(os.getcwd())
 sys.path.insert(0, os.getcwd())
 from database import connect_database
 
-def separate_covid19_data(conn, q):
-    df_estados = conn.execute(f'''
-        SELECT regiao, estado, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos,  emacompanhamentonovos
-        FROM ({q})
-        WHERE 
-            estado IS NOT NULL AND
-            codmun IS NULL
+def connect_to_database() -> Optional[duckdb.DuckDBPyConnection]:
+    try:
+        conn = connect_database()
+        print("Connection was not established." if conn is None else "Connection established successfully.")
+        return conn
+    except duckdb.Error as e:
+        print(f"Error connecting to the database: {e}")
+        return None
+
+def extract_covid19_data(conn: duckdb.DuckDBPyConnection, query: str) -> Tuple[duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation]:
+    """
+    
+    Args:
+        conn: Conexão com o banco de dados.
+        query: Consulta base para extração de dados.
+
+    Returns:
+        Uma tupla com DataFrames de dados de estados, municípios e Brasil.
+    """
+    df_states = conn.execute(f'''
+        SELECT regiao, estado, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos, emacompanhamentonovos
+        FROM ({query})
+        WHERE estado IS NOT NULL AND codmun IS NULL
         LIMIT 5000
     ''').df()
 
-    df_municipios = conn.execute(f'''
+    df_cities = conn.execute(f'''
         SELECT *
-        FROM ({q})
-        WHERE 
-            municipio IS NOT NULL AND
-            codmun IS NOT NULL
+        FROM ({query})
+        WHERE municipio IS NOT NULL AND codmun IS NOT NULL
         LIMIT 5000
     ''').df()
 
-    df_brasil = conn.execute(f'''
-        SELECT regiao, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos,  emacompanhamentonovos
-        FROM ({q})
+    df_brazil = conn.execute(f'''
+        SELECT regiao, coduf, _data, semanaepi, populacaotcu2019, casosacumulado, casosnovos, obitosacumulado, obitosnovos, recuperadosnovos, emacompanhamentonovos
+        FROM ({query})
         WHERE regiao = 'Brasil'
         LIMIT 5000
     ''').df()
 
-    return df_estados, df_municipios, df_brasil
+    return df_states, df_cities, df_brazil
 
-def register_dataframes(conn, df_estados, df_municipios, df_brasil):
+def register_dataframe(conn: duckdb.DuckDBPyConnection, df: duckdb.DuckDBPyRelation, df_name: str) -> None:
+    """
+    
+    Args:
+        conn: Conexão com o banco de dados.
+        df: DataFrame a ser registrado.
+        df_name: Nome do DataFrame.
+    """
     try:
-        conn.register('covid19_estados', df_estados)
-        conn.register('covid19_municipios', df_municipios)
-        conn.register('covid19_brasil', df_brasil)
-        print(f'Registrou todos DataFrame na conexão com sucesso!')
+        conn.register(df_name, df)
+        print(f"DataFrame '{df_name}' registered successfully.")
     except Exception as e:
-        print(f'Erro ao registrar tabela: {e}')
+        print(f"Error registering DataFrame '{df_name}': {e}")
 
-def create_table_db(conn, list_name_tables: list, data_gold_csv):
+def create_table(conn: duckdb.DuckDBPyConnection, table_name: str) -> None:
+    """
+    
+    Args:
+        conn: Conexão com o banco de dados.
+        table_name: Nome da tabela a ser criada.
+    """
     try:
-        for name_table in list_name_tables:
-            conn.execute(f'CREATE TABLE IF NOT EXISTS {name_table} AS FROM {name_table}')
-            to_csv(conn, name_table, name_table, data_gold_csv)
-            q = conn.execute(f'SELECT * FROM {name_table}').df()
-            print(q)
-            print(f'Tabela {name_table} criada com sucesso!')
-    except BaseExceptionGroup as e:
-        print(f'Erro ao criar tabela: {e}')
+        conn.execute(f"CREATE TABLE IF NOT EXISTS {table_name} AS SELECT * FROM {table_name}")
+        print(f"Table '{table_name}' created successfully.")
+    except Exception as e:
+        print(f"Error creating table '{table_name}': {e}")
 
-def describe_covid19_tables(conn):
-    result_estados = conn.execute(f'DESCRIBE covid19_estados').df()
-    result_municipios = conn.execute(f'DESCRIBE covid19_municipios').df()
-    result_brasil = conn.execute(f'DESCRIBE covid19_brasil').df()
+def export_table_to_csv(conn: duckdb.DuckDBPyConnection, table_name: str, file_name: str, silver_csv_folder_path: str) -> None:
+    """
+    
+    Args:
+        conn: Conexão com o banco de dados.
+        table_name: Nome da tabela a ser exportada.
+        file_name: Nome do arquivo CSV.
+        silver_csv_folder_path: Caminho para a pasta onde o arquivo CSV será salvo.
+    """
+    if not os.path.exists(silver_csv_folder_path):
+        os.makedirs(silver_csv_folder_path)
 
-def to_csv(conn, name_table, name_file, path_data_gold_csv):
-    if not os.path.exists(path_data_gold_csv):
-        os.makedirs(path_data_gold_csv)
+    csv_file_path = os.path.join(silver_csv_folder_path, f"{file_name}.csv")
 
-    path_data_gold_csv = os.path.join(path_data_gold_csv, name_file)
-    conn.execute(f"COPY {name_table} TO '{path_data_gold_csv}.csv' (HEADER, DELIMITER ';')")
+    try:
+        conn.execute(f"COPY {table_name} TO '{csv_file_path}' (HEADER, DELIMITER ';')")
+        print(f"Table '{table_name}' exported to CSV.")
+    except Exception as e:
+        print(f"Error exporting table '{table_name}' to CSV: {e}")
 
-def transform():
+def transform() -> Tuple[duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation, duckdb.DuckDBPyRelation]:
+    """
+    
+    Returns:
+        Uma tupla com os DataFrames de estados, municípios e Brasil.
+    """
     root_folder = os.getcwd()
-    bronze_data_folder = os.path.join(root_folder, 'data', 'extracted_files')
-    full_bronze_data_path = os.path.join(bronze_data_folder, '*')
-    data_gold_csv = os.path.join(root_folder, 'data', 'gold_csv_files')
+    folder_bronze = os.path.join(root_folder, 'data', 'extracted_files')
+    path_bronze_files = os.path.join(folder_bronze, '*')
+    folder_gold = os.path.join(root_folder, 'data', 'silver_csv_files')
     
-    list_name_tables = ['covid19_estados', 'covid19_municipios', 'covid19_brasil']
-
-    try:
-        conn = connect_database()
-        if conn is None:
-            print("A conexão não foi estabelecida.")
-        else:
-            print("Conexão estabelecida com sucesso.")
-    except duckdb.Error as e:
-        print(f"Erro ao conectar ao banco de dados: {e}")
-
-    q = f'''SELECT * 
-            FROM read_csv_auto(
-                '{full_bronze_data_path}',
-                normalize_names=true,
-                ignore_errors=true,
-                delim=';',
-                header=true
-            )'''
+    query_base = f'''
+        SELECT *
+        FROM read_csv_auto(
+            '{path_bronze_files}',
+            normalize_names=True,
+            ignore_errors=True,
+            delim=';',
+            header=True
+        )
+    '''
     
-    df_estados, df_municipios, df_brasil = separate_covid19_data(conn, q)
-    register_dataframes(conn, df_estados, df_municipios, df_brasil)
-    create_table_db(conn, list_name_tables, data_gold_csv)
-    print('Passou pelas funções todas. funcionou')
+    df_names = ['covid19_states', 'covid19_cities', 'covid19_brazil']
 
-    return df_estados, df_municipios, df_brasil # DataFrames criados dos estados, municipios e do Brasil
+    conn = connect_to_database()
+    dataframes = extract_covid19_data(conn, query_base)
+    
+    for df, df_name in zip(dataframes, df_names):
+        register_dataframe(conn, df, df_name)
+        create_table(conn, df_name)
+        export_table_to_csv(conn, df_name, df_name, folder_gold)
+    
+    return dataframes
+
+transform()
