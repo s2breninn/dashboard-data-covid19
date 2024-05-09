@@ -23,8 +23,8 @@ CENTER_LAT, CENTER_LON = -14.272572694355336, -51.2556740418474
 estados_brasil = load_file_json('geojson/brazil_geo.json')
 #df_estados, df_municipios, df_brasil = transform()
 
-df_states = pd.read_csv('data/gold_csv_files/covid19_estados.csv', sep=';')
-df_brazil = pd.read_csv('data/gold_csv_files/covid19_brasil.csv', sep=';')
+df_states = pd.read_csv('data/silver_csv_files/covid19_states.csv', sep=';')
+df_brazil = pd.read_csv('data/silver_csv_files/covid19_brazil.csv', sep=';')
 df_data = df_states[df_states['estado'] == 'RJ']
 
 select_columns = {
